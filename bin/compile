@@ -4,10 +4,10 @@ APP_DIR="$1"
 ENV_DIR="$3"
 
 # load required environment variables
-GIT_REPO_URL=$(<"$ENV_DIR/GIT_REPO_URL")
+GIT_REPO_URLS=$(<"$ENV_DIR/GIT_REPO_URLS")
 GIT_SSH_KEY=$(<"$ENV_DIR/GIT_SSH_KEY")
 
-if [[ -z $GIT_REPO_URL ]]; then
+if [[ -z $GIT_REPO_URLS ]]; then
     echo "Did you forget to set GIT_REPO_URL?"
     exit 1
 fi
@@ -31,27 +31,31 @@ git init -q
 git config core.sparseCheckout true
 echo ".gitmodules" > .git/info/sparse-checkout
 
-# add the repo as a remote and fetch the repo's history
-git remote add origin "$GIT_REPO_URL"
 
-# install the ssh key
-mkdir ~/.ssh
-ssh-keyscan -H github.com >> ~/.ssh/known_hosts 2> /dev/null
-cat "$ENV_DIR/GIT_SSH_KEY" > ~/.ssh/id_rsa
+for GIT_REPO_URL in $(echo $GIT_REPO_URLS | sed "s/,/ /g")
+do
+	# add the repo as a remote and fetch the repo's history
+	git remote add origin "$GIT_REPO_URL"
 
-# ignore/hide ssh warnings
-echo "Host *" >> ~/.ssh/config
-echo "   StrictHostKeyChecking no" >> ~/.ssh/config
-echo "   UserKnownHostsFile /dev/null" >> ~/.ssh/config
-echo "   LogLevel ERROR" >> ~/.ssh/config
-echo "-----> Installed SSH key from GIT_SSH_KEY"
+	# install the ssh key
+	mkdir ~/.ssh
+	ssh-keyscan -H github.com >> ~/.ssh/known_hosts 2> /dev/null
+	cat "$ENV_DIR/GIT_SSH_KEY" > ~/.ssh/id_rsa
 
-# checkout the revision that's being deployed
-git fetch -q --depth 1 origin -a > /dev/null
-git checkout -q ${SOURCE_VERSION:-master} > /dev/null
-echo "-----> Fetched shallow history from $GIT_REPO_URL"
+	# ignore/hide ssh warnings
+	echo "Host *" >> ~/.ssh/config
+	echo "   StrictHostKeyChecking no" >> ~/.ssh/config
+	echo "   UserKnownHostsFile /dev/null" >> ~/.ssh/config
+	echo "   LogLevel ERROR" >> ~/.ssh/config
+	echo "-----> Installed SSH key from GIT_SSH_KEY"
 
-# initialize all the submodules
-git submodule -q update --init --recursive
-echo "-----> Checked out all submodules"
-git submodule status | sed 's/^/       * /'
+	# checkout the revision that's being deployed
+	git fetch -q --depth 1 origin -a > /dev/null
+	git checkout -q ${SOURCE_VERSION:-master} > /dev/null
+	echo "-----> Fetched shallow history from $GIT_REPO_URL"
+
+	# initialize all the submodules
+	git submodule -q update --init --recursive
+	echo "-----> Checked out all submodules"
+	git submodule status | sed 's/^/       * /'
+done
