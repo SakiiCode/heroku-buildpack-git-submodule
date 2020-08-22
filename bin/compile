@@ -43,6 +43,7 @@ do
 
 	# install the ssh key
 	mkdir ~/.ssh
+  ssh-keyscan -H github.com >> ~/.ssh/known_hosts 2> /dev/null
 	ssh-keyscan -H gitlab.com >> ~/.ssh/known_hosts 2> /dev/null
 	cat "$ENV_DIR/GIT_SSH_KEY" > ~/.ssh/id_rsa
 
