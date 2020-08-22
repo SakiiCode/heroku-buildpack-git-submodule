@@ -5,10 +5,16 @@ ENV_DIR="$3"
 
 # load required environment variables
 GIT_REPO_URLS=$(<"$ENV_DIR/GIT_REPO_URLS")
+GIT_REPO_FOLDERS=$(<"$ENV_DIR/GIT_REPO_FOLDERS")
 GIT_SSH_KEY=$(<"$ENV_DIR/GIT_SSH_KEY")
 
 if [[ -z $GIT_REPO_URLS ]]; then
     echo "Did you forget to set GIT_REPO_URL?"
+    exit 1
+fi
+
+if [[ -z $GIT_REPO_FOLDERS ]]; then
+    echo "Did you forget to set GIT_REPO_FOLDERS?"
     exit 1
 fi
 
@@ -18,19 +24,7 @@ if [[ -z $GIT_SSH_KEY ]]; then
 fi
 
 # make sure we're in the root of the app dir
-cd "$APP_DIR"
-
-# remove existing .gitmodules, we'll check out it again
-rm .gitmodules
-
-# create an empty repo to fetch into
-git init -q
-
-# enable sparse checkouts, this will avoid checking out
-# all the files in the repo, we'll only check out .gitmodules
-git config core.sparseCheckout true
-echo ".gitmodules" > .git/info/sparse-checkout
-
+IFS=',' read -r -a array <<< "$GIT_REPO_FOLDERS"
 
 mkdir ~/.ssh
 
@@ -38,11 +32,26 @@ i=0
 for GIT_REPO_URL in $(echo $GIT_REPO_URLS | sed "s/,/ /g")
 do
 
+  cd "$APP_DIR/${array[$i]}"
+
+  # remove existing .gitmodules, we'll check out it again
+  #rm .gitmodules
+
+
+  # create an empty repo to fetch into
+  #git init -q
+
+  # enable sparse checkouts, this will avoid checking out
+  # all the files in the repo, we'll only check out .gitmodules
+  #git config core.sparseCheckout true
+  #echo ".gitmodules" > .git/info/sparse-checkout
+
+
 	echo ""
-	echo "Loading submodule $i from $GIT_REPO_URL"
+	echo "Loading $((i+1)). submodule from $GIT_REPO_URL"
 	echo ""
 	# add the repo as a remote and fetch the repo's history
-	git remote add origin$i "$GIT_REPO_URL"
+	#git remote add origin$i "$GIT_REPO_URL"
 
 	# install the ssh key
 
@@ -58,15 +67,17 @@ do
 	echo "-----> Installed SSH key from GIT_SSH_KEY"
 
 	# checkout the revision that's being deployed
-  echo "Feching..."
-	git fetch --depth 1 origin$i -a
-  echo "Checking out..."
-	git checkout master
+  #echo "Feching..."
+	#git fetch --depth 1 origin$i -a
+  #echo "Checking out..."
+  #git status
+	#git checkout master
+  git clone $GIT_REPO_URL --depth 1 .
 	echo "-----> Fetched shallow history from $GIT_REPO_URL"
 
 	# initialize all the submodules
-	git submodule update --init --recursive
-	echo "-----> Checked out all submodules"
-	git submodule status | sed 's/^/       * /'
+	#git submodule update --init --recursive
+	#echo "-----> Checked out all submodules"
+	#git submodule status | sed 's/^/       * /'
   i=$((i+1))
 done
