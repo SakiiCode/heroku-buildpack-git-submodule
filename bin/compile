@@ -31,6 +31,9 @@ git init -q
 git config core.sparseCheckout true
 echo ".gitmodules" > .git/info/sparse-checkout
 
+
+mkdir ~/.ssh
+
 i=0
 for GIT_REPO_URL in $(echo $GIT_REPO_URLS | sed "s/,/ /g")
 do
@@ -42,7 +45,7 @@ do
 	git remote add origin$i "$GIT_REPO_URL"
 
 	# install the ssh key
-	mkdir ~/.ssh
+
   ssh-keyscan -H github.com >> ~/.ssh/known_hosts 2> /dev/null
 	ssh-keyscan -H gitlab.com >> ~/.ssh/known_hosts 2> /dev/null
 	cat "$ENV_DIR/GIT_SSH_KEY" > ~/.ssh/id_rsa
@@ -55,13 +58,14 @@ do
 	echo "-----> Installed SSH key from GIT_SSH_KEY"
 
 	# checkout the revision that's being deployed
-	git fetch -q --depth 1 origin$i -a
-  echo "Checking out ${SOURCE_VERSION:-master}"
-	git checkout -q ${SOURCE_VERSION:-master}
+  echo "Feching..."
+	git fetch --depth 1 origin$i -a
+  echo "Checking out..."
+	git checkout master
 	echo "-----> Fetched shallow history from $GIT_REPO_URL"
 
 	# initialize all the submodules
-	git submodule -q update --init --recursive
+	git submodule update --init --recursive
 	echo "-----> Checked out all submodules"
 	git submodule status | sed 's/^/       * /'
   i=$((i+1))
